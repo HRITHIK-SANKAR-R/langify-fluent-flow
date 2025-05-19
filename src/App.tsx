@@ -16,26 +16,28 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/prerequisites" element={<Prerequisites />} />
-          <Route path="/tips" element={<Tips />} />
-          <Route path="/sample" element={<SampleTest />} />
-          <Route path="/test-overview" element={<TestOverview />} />
-          <Route path="/test/reading" element={<ReadingTest />} />
-          <Route path="/test/repeat" element={<RepeatTest />} />
-          <Route path="/test-complete" element={<TestComplete />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/prerequisites" element={<Prerequisites />} />
+            <Route path="/tips" element={<Tips />} />
+            <Route path="/sample" element={<SampleTest />} />
+            <Route path="/test-overview" element={<TestOverview />} />
+            <Route path="/test/reading" element={<ReadingTest />} />
+            <Route path="/test/repeat" element={<RepeatTest />} />
+            <Route path="/test-complete" element={<TestComplete />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </QueryClientProvider>
+  );
+};
 
 export default App;
