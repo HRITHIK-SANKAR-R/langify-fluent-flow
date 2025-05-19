@@ -3,13 +3,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import SystemCheckItem from "@/components/SystemCheckItem";
+import SystemCheckItem, { SystemCheckStatus } from "@/components/SystemCheckItem";
 import { toast } from "@/components/ui/sonner";
 import { ArrowRight } from "lucide-react";
 
 const Prerequisites = () => {
   const navigate = useNavigate();
-  const [checkResults, setCheckResults] = useState({
+  const [checkResults, setCheckResults] = useState<Record<string, SystemCheckStatus>>({
     browser: "checking",
     cookies: "checking",
     internet: "checking",
@@ -98,39 +98,45 @@ const Prerequisites = () => {
           
           <div className="space-y-4">
             <SystemCheckItem 
-              label="Checking browser compatibility" 
-              status={checkResults.browser} 
-              icon="globe"
+              title="Browser Compatibility"
+              description="Checking if your browser supports all required features" 
+              status={checkResults.browser}
+              errorMessage="Your browser may not fully support all features"
             />
             
             <SystemCheckItem 
-              label="Verifying cookies enabled" 
+              title="Cookies Enabled"
+              description="Verifying that cookies are enabled for this site" 
               status={checkResults.cookies}
-              icon="cookie" 
+              errorMessage="Please enable cookies to continue"
             />
             
             <SystemCheckItem 
-              label="Testing internet speed" 
+              title="Internet Connection"
+              description="Testing your internet connection speed and stability" 
               status={checkResults.internet}
-              icon="wifi" 
+              errorMessage="Your internet connection may not be stable"
             />
             
             <SystemCheckItem 
-              label="Checking volume output" 
+              title="Audio Output"
+              description="Checking if your speakers or headphones are working" 
               status={checkResults.volume}
-              icon="volume" 
+              errorMessage="Please check your speakers or headphones"
             />
             
             <SystemCheckItem 
-              label="Testing microphone access" 
+              title="Microphone Access"
+              description="Testing access to your microphone" 
               status={checkResults.microphone}
-              icon="mic" 
+              errorMessage="Please allow microphone access in your browser settings"
             />
             
             <SystemCheckItem 
-              label="Measuring background noise level" 
+              title="Background Noise"
+              description="Measuring your environment's background noise level" 
               status={checkResults.noise}
-              icon="activity" 
+              errorMessage="High background noise detected - find a quieter location"
             />
           </div>
           
