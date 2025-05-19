@@ -6,65 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mic, ArrowRight, HelpCircle, Play, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import QuestionNumberPill from "@/components/QuestionNumberPill";
+import { fetchSectionQuestions, getAudioUrl, saveRecording } from "@/services/apiService";
 
-// Mock repeat test data
-const mockRepeatTest = {
-  id: "repeat",
-  title: "Repeat Test",
-  description: "Listen and repeat each sentence exactly as you hear it",
-  currentQuestion: 1,
-  totalQuestions: 8,
-  questions: [
-    {
-      id: "repeat-q1",
-      audioUrl: "/sample-audio.mp3", // In a real app, this would be dynamic
-      text: "The company announced a significant increase in quarterly profits yesterday.",
-      timeLimit: 27
-    },
-    {
-      id: "repeat-q2",
-      audioUrl: "/sample-audio.mp3",
-      text: "The researchers published their findings in a prestigious scientific journal.",
-      timeLimit: 27
-    },
-    {
-      id: "repeat-q3",
-      audioUrl: "/sample-audio.mp3",
-      text: "She's considering applying for a scholarship to study abroad next year.",
-      timeLimit: 27
-    },
-    {
-      id: "repeat-q4",
-      audioUrl: "/sample-audio.mp3",
-      text: "The museum is hosting a special exhibition featuring works by local artists.",
-      timeLimit: 27
-    },
-    {
-      id: "repeat-q5",
-      audioUrl: "/sample-audio.mp3",
-      text: "They've implemented a new policy to reduce plastic waste in the office.",
-      timeLimit: 27
-    },
-    {
-      id: "repeat-q6",
-      audioUrl: "/sample-audio.mp3",
-      text: "The conference will be held at the international convention center downtown.",
-      timeLimit: 27
-    },
-    {
-      id: "repeat-q7",
-      audioUrl: "/sample-audio.mp3",
-      text: "Regular exercise can significantly improve both physical and mental health.",
-      timeLimit: 27
-    },
-    {
-      id: "repeat-q8",
-      audioUrl: "/sample-audio.mp3",
-      text: "We need to reschedule the meeting because several team members are unavailable.",
-      timeLimit: 27
-    }
-  ]
-};
+interface Question {
+  question_id: string;
+  audio_file: string;
+  text?: string;
+  timeLimit: number;
+}
 
 const RepeatTest = () => {
   const navigate = useNavigate();
@@ -76,15 +25,57 @@ const RepeatTest = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingComplete, setRecordingComplete] = useState(false);
   const [replayCount, setReplayCount] = useState(2);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<number | null>(null);
   
-  const currentQuestion = mockRepeatTest.questions[currentQuestionIndex];
+  // Default test ID and section type
+  const testId = "test1";
+  const sectionType = "repeat";
   
   useEffect(() => {
-    // Reset state when question changes
+    const loadQuestions = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchSectionQuestions(testId, sectionType);
+        
+        // Transform the data to include timeLimit
+        const questionsWithTimeLimit = data.questions.map(q => ({
+          ...q,
+          timeLimit: 30 // default 30 seconds for each question
+        }));
+        
+        setQuestions(questionsWithTimeLimit);
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Error loading questions:", err);
+        setError("Failed to load questions. Please try again.");
+        setIsLoading(false);
+      }
+    };
+    
+    loadQuestions();
+    
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    };
+  }, []);
+  
+  useEffect(() => {
+    // Reset state when question changes or when questions are loaded
+    if (questions.length === 0) return;
+    
+    const currentQuestion = questions[currentQuestionIndex];
+    if (!currentQuestion) return;
+    
     setTimeRemaining(currentQuestion.timeLimit);
     setAudioPlayed(false);
     setIsAudioPlaying(false);
@@ -95,23 +86,24 @@ const RepeatTest = () => {
     
     // Initialize audio element
     if (!audioRef.current) {
-      audioRef.current = new Audio(currentQuestion.audioUrl);
+      audioRef.current = new Audio();
       audioRef.current.addEventListener('ended', handleAudioEnded);
-    } else {
-      audioRef.current.src = currentQuestion.audioUrl;
     }
+    
+    // Set the audio source URL
+    const audioUrl = getAudioUrl(currentQuestion.question_id);
+    audioRef.current.src = audioUrl;
     
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = '';
         audioRef.current.removeEventListener('ended', handleAudioEnded);
       }
       
       if (timerRef.current) clearInterval(timerRef.current);
       stopRecording();
     };
-  }, [currentQuestionIndex]);
+  }, [currentQuestionIndex, questions]);
   
   const handleAudioEnded = () => {
     setIsAudioPlaying(false);
@@ -151,7 +143,8 @@ const RepeatTest = () => {
     
     if (isRecording) {
       stopRecording();
-      setTimeRemaining(currentQuestion.timeLimit);
+      const currentQuestion = questions[currentQuestionIndex];
+      if (currentQuestion) setTimeRemaining(currentQuestion.timeLimit);
     }
     
     audioRef.current.currentTime = 0;
@@ -173,12 +166,21 @@ const RepeatTest = () => {
       };
       
       mediaRecorder.onstop = () => {
-        // In a real app, we would save this blob or upload it
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        console.log(`Recording saved for question ${currentQuestion.id}`, audioBlob);
         
-        // Simulate saving the recording
-        toast.success("Recording saved successfully");
+        // Save the recording using our API service
+        const currentQuestion = questions[currentQuestionIndex];
+        if (currentQuestion) {
+          saveRecording(currentQuestion.question_id, audioBlob)
+            .then(() => {
+              toast.success("Recording saved successfully");
+            })
+            .catch((err) => {
+              console.error("Error saving recording:", err);
+              toast.error("Failed to save recording");
+            });
+        }
+        
         setRecordingComplete(true);
       };
       
@@ -219,13 +221,42 @@ const RepeatTest = () => {
   };
   
   const handleNext = () => {
-    if (currentQuestionIndex < mockRepeatTest.questions.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       // Navigate to the next test section - in a real app, you would dynamically determine the next section
       navigate("/test-complete");
     }
   };
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-blue-50 p-4">
+        <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+        <p className="text-gray-600">Loading questions...</p>
+      </div>
+    );
+  }
+  
+  if (error || questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-blue-50 p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardContent className="p-8 text-center">
+            <p className="text-red-500 mb-4">{error || "No questions available for this test."}</p>
+            <Button 
+              onClick={() => navigate("/test-overview")}
+              variant="outline"
+            >
+              Back to Test Overview
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  const currentQuestion = questions[currentQuestionIndex];
   
   return (
     <div className="min-h-screen flex flex-col bg-blue-50 p-4">
@@ -247,7 +278,7 @@ const RepeatTest = () => {
                 <div className="bg-white p-4 rounded-lg border shadow-sm">
                   <h3 className="font-medium mb-3 text-gray-700">Questions</h3>
                   <div className="grid grid-cols-3 gap-2">
-                    {mockRepeatTest.questions.map((_, index) => (
+                    {questions.map((_, index) => (
                       <QuestionNumberPill 
                         key={index}
                         number={index + 1}
@@ -283,7 +314,7 @@ const RepeatTest = () => {
                     </div>
                   </div>
                   
-                  {audioPlayed && (
+                  {audioPlayed && currentQuestion.text && (
                     <div className="bg-blue-50 p-6 rounded-lg my-6 text-center">
                       <p className="text-lg font-medium">
                         "{currentQuestion.text}"

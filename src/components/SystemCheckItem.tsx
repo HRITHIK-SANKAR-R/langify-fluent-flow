@@ -1,53 +1,46 @@
 
-import { Check, Loader2, X, Globe, Cookie, Wifi, Volume2, Mic, Activity } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
 
-type SystemCheckStatus = "idle" | "checking" | "success" | "error";
-type IconType = "globe" | "cookie" | "wifi" | "volume" | "mic" | "activity";
+export type SystemCheckStatus = 'checking' | 'success' | 'error' | 'warning';
 
-interface SystemCheckItemProps {
-  label: string;
+export interface SystemCheckItemProps {
+  title: string;
+  description: string;
   status: SystemCheckStatus;
-  icon: IconType;
+  errorMessage?: string;
 }
 
-const SystemCheckItem = ({ label, status, icon }: SystemCheckItemProps) => {
-  const getStatusIcon = () => {
-    switch (status) {
-      case "idle":
-        return <div className="w-5 h-5" />;
-      case "checking":
-        return <Loader2 className="w-5 h-5 animate-spin text-blue-500" />;
-      case "success":
-        return <Check className="w-5 h-5 text-green-500" />;
-      case "error":
-        return <X className="w-5 h-5 text-red-500" />;
-    }
-  };
-
+const SystemCheckItem = ({
+  title,
+  description,
+  status,
+  errorMessage
+}: SystemCheckItemProps) => {
   const getIcon = () => {
-    switch (icon) {
-      case "globe":
-        return <Globe className="w-6 h-6 text-green-500" />;
-      case "cookie":
-        return <Cookie className="w-6 h-6 text-green-500" />;
-      case "wifi":
-        return <Wifi className="w-6 h-6 text-green-500" />;
-      case "volume":
-        return <Volume2 className="w-6 h-6 text-green-500" />;
-      case "mic":
-        return <Mic className="w-6 h-6 text-green-500" />;
-      case "activity":
-        return <Activity className="w-6 h-6 text-green-500" />;
+    switch (status) {
+      case 'checking':
+        return <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />;
+      case 'success':
+        return <CheckCircle className="h-6 w-6 text-green-500" />;
+      case 'error':
+        return <XCircle className="h-6 w-6 text-red-500" />;
+      case 'warning':
+        return <AlertCircle className="h-6 w-6 text-yellow-500" />;
     }
   };
 
   return (
-    <div className={`flex items-center p-4 ${status === 'checking' ? 'bg-blue-50' : ''} rounded-md transition-colors`}>
-      <div className="bg-white p-2 rounded-full mr-4 shadow-sm">
+    <div className="flex items-start space-x-4 p-4 rounded-lg border bg-white">
+      <div className="mt-0.5">
         {getIcon()}
       </div>
-      <span className="flex-1 text-gray-700">{label}</span>
-      <div>{getStatusIcon()}</div>
+      <div className="flex-1">
+        <h3 className="font-medium text-gray-900">{title}</h3>
+        <p className="text-sm text-gray-500">{description}</p>
+        {status === 'error' && errorMessage && (
+          <p className="mt-2 text-sm text-red-600">{errorMessage}</p>
+        )}
+      </div>
     </div>
   );
 };
